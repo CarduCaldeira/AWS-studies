@@ -237,4 +237,24 @@ Para isso é necessário configurar algumas etapas:
 - Fixar um IP fixo a sua instancia. Toda vez que uma instancia é parada ao ser iniciada novamente por padrão será um IP Public diferente. Então na aba lateral de EC2 selecione Network & Security -> Elastic Ips -> Allocate Elastic IP adress. Após criar o IP selecione ele e em Actions -> Associate Elastic IP address, e então associe a instancia desejada. 
 - Em Route 53 voce pode então associar o dominio ao IP criado criando um record, inserindo o IP.
 
-## Gitpod
+##  Cloudshell e Gitpod
+
+Por meio de terminal (AWS CLI) é possível interagir com os recursos da aws. No Cloudshell voce pode
+verificar usuarios, listar buckets, verificar e executar instancias etc. Por exemplo voce pode listar os nomes
+das regions para as instancias ec2:
+
+```
+>> aws ec2 describe-regions --query "Regions[].RegionName" --output text
+```
+
+Por padrão o output das respostas no AWS CLI é json.
+
+Também é possivel utilizar o AWS CLI fora de ambientes da AWS, como no
+seu computador. Para conectar ao seu usuario da AWS CLI, após sua instalação:
+
+```
+aws configure 
+```
+E insira a ACCESS_KEY e a SECRET_KEY. No  
+[link](https://awscli.amazonaws.com/v2/documentation/api/latest/reference/index.html)
+apresenta a documentação referente aos comandos.
