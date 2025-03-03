@@ -183,7 +183,7 @@ Para uma rede ter acesso a internet é necessário que ela tenha um IP público 
 
 Para gerenciamneto de uma VPC existem dois aspectos:
 
-- Security group: Definições sobre cada instancia EC2, é possível configurar aspectos como quais portas podem receber requisições etc. Nesse contexto tuo que deve ser permitido deve ser definido, caso não definido não é permitido.
+- Security group: Definições sobre cada instancia EC2, é possível configurar aspectos como quais portas podem receber requisições etc. Nesse contexto tudo que deve ser permitido deve ser definido, caso não definido não é permitido.
 
 - VACL's: Definições sobre a VPC, se aplica sobre a VPC. Pode ser definido o que é permitido e o que não é permitido.
 
@@ -217,11 +217,14 @@ Após isso  é possível criar uma nova instancia atribuindo a ela um par de AZ 
 
 Para o monitoramento das instancias ec2 (ou outros serviços) é possível utilizar
 o cloudwatch. O cloudwatch disponibiliza o monitoramente a cada 5 minutos de métricas
-como o uso de memória, uso de cpu etc. A partir de tais métricas é possível implementar trigger como disparar alarmes por email utilizando o Amazon SNS ou até mesmo parar uma instancia caso estaja com pouco uso. 
+como o uso de memória, uso de cpu etc. A partir de tais métricas é possível implementar triggers como 
+disparar alarmes por email utilizando o Amazon SNS ou até mesmo executar ações como parar uma instância
+caso esteja com pouco uso. 
 
-É possivel ativar no cloudwatch o datalhamento de métricas a cada 1 minuto (um custo adicional). Para ativar o datalhamento selecione Manage detailed monitoring -> Enable. 
+É possivel ativar no cloudwatch o detalhamento de métricas a cada 1 minuto (um custo adicional).
+Para ativar o detalhamento selecione Manage detailed monitoring -> Enable. 
 
-Vamos configurar um monitoramento que emite um alerta no email, crie um topico  em Amazon SNS,
+Vamos configurar um monitoramento que emite um alerta no email, crie um tópico em Amazon SNS,
 selecione o topico criado e crie uma subscription que o protocolo é via email, isto é, ao alarme ser disparado é enviado um email (outras ações podem ser configuradas como fazer uma requisição, sms, Amazon SQS e Lambda).
 
 Após isso, voltando para a seção em EC2 em Actions -> Monitor and troubleshoot -> Manage Cloudwatch Alarms voce pode criar um alarme, inclusive selecionando uma ação (como pausar uma instancia). Ao criar o alarme selecione o topico com a subscription criada.
@@ -233,11 +236,11 @@ Note que  ao criar um alarme voce pode configurar em Alarm action ações como S
 Ao configurar uma instancia voce pode querer associar um dominio associado ao seu IP Public IPv4 address.
 Para isso é necessário configurar algumas etapas:
 
-- Alugar um dominio em Rute 53
+- Alugar um dominio em Route 53
 - Fixar um IP fixo a sua instancia. Toda vez que uma instancia é parada ao ser iniciada novamente por padrão será um IP Public diferente. Então na aba lateral de EC2 selecione Network & Security -> Elastic Ips -> Allocate Elastic IP adress. Após criar o IP selecione ele e em Actions -> Associate Elastic IP address, e então associe a instancia desejada. 
 - Em Route 53 voce pode então associar o dominio ao IP criado criando um record, inserindo o IP.
 
-##  Cloudshell e Gitpod
+##  Cloudshell
 
 Por meio de terminal (AWS CLI) é possível interagir com os recursos da aws. No Cloudshell voce pode
 verificar usuarios, listar buckets, verificar e executar instancias etc. Por exemplo voce pode listar os nomes
@@ -258,3 +261,33 @@ aws configure
 E insira a ACCESS_KEY e a SECRET_KEY. No  
 [link](https://awscli.amazonaws.com/v2/documentation/api/latest/reference/index.html)
 apresenta a documentação referente aos comandos.
+
+## CloudTrail
+
+Para rastrear todas as chamadas de API realizadas nos seus serviços a AWS disponibiliza
+o CloudTrail, que monitora as chamadas e registra os logs em um bucket da AWS.
+
+Para isso é necessário criar um trail (configurado por região). Os recursos disponiveis são:
+
+- Gerenciamento dos recursos: Capturar as repostas dos eventos.
+- Data events: Respostas das chamadas das API's
+- Insights: Recursos que detectam eventos de segurança (como numero de chamadas atipicas etc).
+
+## Route 53 com Health Check
+
+Outro recurso de monitoramento que a AWS disponibiliza é o uso de  Health Check no Route 53.
+Ao associar um dominio a um IP é possivel configurar o Health Check. Nele é possível verificar
+os endpoints e emitir alertas em casos de falha ou caso não esteja disponivel.
+
+## Amazon RDS
+
+A aws fornece o o serviço Amazon RDS para o uso de banco de dados relacionais. O processo
+de criação de uma Database (seja MySQL, Postgres, Oracle etc) é parecido com a criação de uma instancia
+EC2. Além das configurações especificas para um database atente se para a criação de um security group
+na vpc selecionada com permissão a comunicação na porta configurada para o Database (por exemplo no caso do
+postgres 5432). Em geral, utilize o database em uma subrede privada.
+
+Após isso a criação é possível utilizar o dabatase normalmente.
+
+## Auto Scaling e Load Balancer
+
