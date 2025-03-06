@@ -283,11 +283,55 @@ os endpoints e emitir alertas em casos de falha ou caso não esteja disponivel.
 
 A aws fornece o o serviço Amazon RDS para o uso de banco de dados relacionais. O processo
 de criação de uma Database (seja MySQL, Postgres, Oracle etc) é parecido com a criação de uma instancia
-EC2. Além das configurações especificas para um database atente se para a criação de um security group
+EC2. Além das configurações especificas para um database, atente se para a criação de um security group
 na vpc selecionada com permissão a comunicação na porta configurada para o Database (por exemplo no caso do
 postgres 5432). Em geral, utilize o database em uma subrede privada.
 
 Após isso a criação é possível utilizar o dabatase normalmente.
 
-## Auto Scaling e Load Balancer
+## Auto Scaling 
 
+Para garantir disponibilidade no EC2 (e também escabilidade e performace)  podemos deixar configurado
+o scaling group, que no caso de uma instancia cair ele ira garantir que uma copia seja instanciada e sempre
+tenha um numero especificado de instancias EC2 disponivel (ou dentro de um intervalo definido).
+
+Antes disso vamos configurar um Launch template (que será utilizado pelo scaling group). Em ec2
+selecione Launch Template e Create template. Ao criar o Launch Template selecione
+Auto Scaling guidance como na figura abaixo:
+
+![Texto alternativo](assets/guidance-auto-scaling.png)
+
+Não é necessário selecionar a subnet que o Lunch template será criado (isso pode ser configurado no auto scaling group), porém é necessário selecionar uma VPC. 
+
+Um ponto muito importante é que na configuração auto scaling, a subnet escolhida deve estar
+com auto-assign public IPv4 address ativado. Essa configuração é necessária pois ao contrário
+de criar uma instancia no EC2 que por padrão vem com o auto-assing public IP ativado como na figura abaixo (logo mesmo que uma instancia seja criada em um subnet publica se ela nao tiver um IP publico não será possível acessa-la publicamente).  
+
+![Texto alternativo](assets/instance_enable.png)
+
+Ao selecionar uma subnet publica o Auto-assign public IPv4 address padrão
+será No:
+
+![Texto alternativo](assets/default_subnet.png)
+
+Para ativar siga os passos Actions ->  Edit subnet settings -> Enable auto-assign public IPv4 address.
+
+![Texto alternativo](assets/activate_public_ip.png)
+
+Com essa configuração, as instancias (e Launch template) criadas em tal subnet 
+possuirá um IP publico. Também lembre de criar ou adicionar um security group
+para o Launch Template.
+
+Após criar o Launch template é possível configurar o Auto Scaling Group. Selecione em EC2 -> Auto Scale Groups -> Create Auto Scale Group.
+
+Na criação selecione mais de uma AZ (não é necessário ativar o Load Balancer ainda).
+No auto scaling group é possível selecionar as quantidades de instancias do Launch Template desejadas, minimas e maximas
+
+![Texto alternativo](assets/scaling-group.png)
+
+Após a criação será iniciado uma instancia. Assim, devido ao auto scaling group mesmo se voce terminar tal instancia ela sera substituida por uma nova.
+
+## Load Balancer
+
+A seguir veremos como criar mais de uma instancia usando o auto scaling group e
+como distribuir as chamadas em diferentes insctancias usando o Load Balancer.
