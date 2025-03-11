@@ -289,7 +289,7 @@ postgres 5432). Em geral, utilize o database em uma subrede privada.
 
 Após isso a criação é possível utilizar o dabatase normalmente.
 
-## Auto Scaling 
+## Auto Scaling e Load Balancer
 
 Para garantir disponibilidade no EC2 (e também escabilidade e performace)  podemos deixar configurado
 o scaling group, que no caso de uma instancia cair ele ira garantir que uma copia seja instanciada e sempre
@@ -331,7 +331,89 @@ No auto scaling group é possível selecionar as quantidades de instancias do La
 
 Após a criação será iniciado uma instancia. Assim, devido ao auto scaling group mesmo se voce terminar tal instancia ela sera substituida por uma nova.
 
-## Load Balancer
+Para distribuir as chamadas entre difentes instancias configure o Load Balancer e ao definir
+o auto scaling group associe o Load balancer. Apesar da configuração ser simples preste muita atenção nas configurações (principalemnte relacionadas a VPC e security group).
 
-A seguir veremos como criar mais de uma instancia usando o auto scaling group e
-como distribuir as chamadas em diferentes insctancias usando o Load Balancer.
+Na proxima seção é feito uma revisão dos principais conceitos sobre alta disponibilidade.
+
+## Revisão de alguns conceitos
+
+- Launch Template: Template definido para o auto scaling. Nesse são configurados
+atributos que serão utilizados pelo AutoScaling Group para criar e manter as instancias.
+
+- Auto Scaling Group: Configuração que cria e mantem as instancias definidas no Launch Template. Possui configurações para definir intervalos de instancias que devem estar disponiveis e configurações para associar ao Load Balancer/Target Group. Ao definir um 
+Load Balancer voce deve atribuir a um ou mais dos seus target groups, dessa forma  
+
+- Load Balancer: Distribui as "requisições" entre as instancias (a forma de distribuição é configuravel). As instancias que receberão a distribuição de carga são definidas ao atribuir um target group. Quando definido o Load Balancer é possivel associar regras como por exemplo 
+uma requisição de um usuario especifico é mantida sempre em uma instancia (por exemplo para perimitir o uso de cookies etc).
+
+- Target group: Definição das "intancias" que receberão a distribuição do Load Balancer.
+  Note que a instancia nao é criada aqui, apenas configurado atributos necessarios para o Load Balancer. Além disso, o target group pode ser definido para funções Lambda, IP (como containers), ou outros load balancers. 
+
+  Ao criar um um target group é possível associar as instancias (ou IP's etc) que o target group conterá, apesar disso, o padrão é deixar essa associação no scaling group,
+  pois de fato é onde será criada as instancias. 
+
+- Security Group: Configuração atribuida a instancias, launch templates, Load Balancer e outros security groups. Seu objetivo é definir quais as portas e protocolos
+de comunicação permitidos.
+
+Lembre-se que todos esses conceitos estão definidos sobre um rede VPC que deve ser criada previamente.
+
+![Texto alternativo](assets/review_concepts.png)
+
+## Politicas de Auto Scaling Group
+
+Um das funcionalidades que o Auto Scaling perimite é o escalonamento dinaminco de instancias.
+Este escalonamento pode ser triggado por tres formas diferentes:
+
+ - Scheduled actions: Agenda os intervalos de instancias (minimo, maximo e desired). Com o a definição de um cron são executados as especificações e minimo, maximo e desired (atenção ao definir tais valores pois eles sobrescrevem os definidos anteriormente). A especificação de instancias ocorre por ação, dessa forma para aumentar o numeor de instancias deve ser agendado um cron e para diminuir deve ser agendado outro cron. Por exemplo, caso voce queira executar um processo as 3h da manha e finaliza-lo as 7h da manha voce deve agendar um cron para subir/aumentar o numero de instancias e a agendar um cron as  7h para diminuir/derrubar as intancias.
+
+  ![Texto alternativo](assets/scheduler.png)
+
+  - Dynamic scaling policies: Define as politicas de escalonamento dinamicamente, baseados em triggers como alertas. Como exemplo vamos um configurar um alerta para utilizar como paramentro para utilização de um auto scaling group. Selecione o Auto scaling group -> Monitoring. Selecione alguns das graficos (nesse exemplo em EC@ foi escolhido CPU Utilization (Percent) que apresenta a utilização média da CPU  nas instancas) e visualize as metricas no cloudwatch:
+
+    ![Texto alternativo](assets/view_metrics.png)
+
+    Selecione create alarm (sino):
+
+    ![Texto alternativo](assets/create_alarm.png)
+
+    Na definição de um alarme existem diferentes parametros como o tipo da métrica (Average, Min, Max, Sum etc), intervalo de tempo, o limiar utilizado (Threshold) etc. Dessa forma, tais alarmes podem ser utilizados tanto para momentos de alta demanda como pouca demanda.
+
+    ![Texto alternativo](assets/params-alarm.png)
+
+    Apos criar o alarme em Dynamic scaling policies voce pode definir a politica de auto scaling:
+
+    ![Texto alternativo](assets/dynamic.png)
+
+    Dentre as configurações temos o policy type:
+    
+    - Target tracking scaling (não é necessário definir um alarme): Ajusta de forma automatica a quantidade de intancias para tentar atingir o target value informado.
+
+    - Simple Scaling: Ao atingir as condilçoes que disparam o alarme executa uma ação (adiciona, diminui, ou ajusta para um valor especifico de instancias a seram utilizadas no auto scaling group).
+
+    - Step scalling: Toma ações baseadas em etapas, por exemplo se atingir o percentual de  50% de utilização média de cpu adiciona uma instancia, se atingir o percentual de 70% adiciona (diminui) duas instancia etc. 
+    
+    Para testar o dynamic auto sacling foi executado em uma das intancias:
+    ```
+    sudo yum install stress -y
+    stress --cpu 1
+    ```
+
+ - Predictive scaling policies: Similar o Dynamic auo scaling porém tiliza modelos preditivos que disparam o alarme antes dele ocorrer.
+
+**Obs**: Como são muitas configurações é muito facil esquecer de algum detalhe e passar despercebido alguma configuração, dessa forma uma abordagem é utilizar o terraform
+que levanta a infraestrura na cloud a partir de arquivos de configuração. Além disso, como sugestão sempre preste muita atenção nas configurações dos security groups, garatindo que as permissoes para inbound (qual o trafico de entrada permitido) e outbound (qual o trafico de saida permitido) estão corretas e as configurações de VPC, em
+particular das subnets (mesmo em casos em que a subnet é publica o route table que ela referencia deve estar conectado a um internet gateway). 
+
+  ![Texto alternativo](assets/inbound.png)
+
+
+  ![Texto alternativo](assets/outbound.png)
+
+
+  ![Texto alternativo](assets/subnet-route-table.png)
+
+
+Note que todos os conceitos apresentados anteriormente foram aplicados com o objetivo de desenvolver aplicaçoes com alta disponibildade e tolerância a falhas, de modo que se ocorrer algum
+imprevisto o sistema tenha capacidade de suportar tal evento. Porém deve se notar que em uma aplicação todos os sitemas integrados devem ter redundancia (como por exemplo o banco de dados).
+
