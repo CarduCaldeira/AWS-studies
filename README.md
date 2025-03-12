@@ -11,7 +11,14 @@ Este repositorio foi criado para documentar os estudos realizados sobre AWS.
 - [Redes privadas VPC](#redes-privadas-vpc)
 - [Monitoramento de serviços na AWS](#monitoramento-de-serviços-na-aws)
 - [Utilizando o Amazon Route 53](#utilizando-o-amazon-route-53)
-
+- [Cloudshell](#cloudshell)
+- [CloudTrail](#cloudtrail)
+- [Route 53 com Health Check](#route-53-com-health-check)
+- [Amazon RDS](#amazon-rds)
+- [Auto Scaling e Load Balancer](#auto-scaling-e-load-balancer)
+- [Revisão de alguns conceitos](#revisao-de-alguns-conceitos)
+- [Politicas de Auto Scaling Group](#politicas-de-auto-scaling-group)
+- [IAM Roles](#iam-roles)
 
 ## Definindo um orçamento
 
@@ -258,8 +265,7 @@ seu computador. Para conectar ao seu usuario da AWS CLI, após sua instalação:
 ```
 aws configure 
 ```
-E insira a ACCESS_KEY e a SECRET_KEY. No  
-[link](https://awscli.amazonaws.com/v2/documentation/api/latest/reference/index.html)
+E insira a ACCESS_KEY e a SECRET_KEY. No  [link](https://awscli.amazonaws.com/v2/documentation/api/latest/reference/index.html)
 apresenta a documentação referente aos comandos.
 
 ## CloudTrail
@@ -416,4 +422,8 @@ particular das subnets (mesmo em casos em que a subnet é publica o route table 
 
 Note que todos os conceitos apresentados anteriormente foram aplicados com o objetivo de desenvolver aplicaçoes com alta disponibildade e tolerância a falhas, de modo que se ocorrer algum
 imprevisto o sistema tenha capacidade de suportar tal evento. Porém deve se notar que em uma aplicação todos os sitemas integrados devem ter redundancia (como por exemplo o banco de dados).
+
+## IAM Roles
+
+
 
