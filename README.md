@@ -425,5 +425,36 @@ imprevisto o sistema tenha capacidade de suportar tal evento. Porém deve se not
 
 ## IAM Roles
 
+Um recurso para autenticação fornecido pela AWS são as roles. Sua aplicação se justifica em casos em que serviçoes dentro do ambiente da aws precisam
+acesso a outros serviços. Dessa modo, é possível criar uma role adicionando uma ou mais policies e associar essa role a este serviço. Internamente a
+aws fara o gerencimento do acesso, atribuindo ACCESS KEYS e SECRET KEYS temporarias (gerenciada por meio de um token) e automaticamente são renovadas.
+Antes de atribuir a role ao serviço EC2 para acessar o S3:
+
+![Texto alternativo](assets/without-role.png)
+
+Após atribuir a role:
+
+![Texto alternativo](assets/role-assumed.png)
+
+Também é possível atribuir roles a usuarios, com um modo de funciomamento um pouco diferente, ao associar uma role a um usuario o periodo de validade máximo de permissão é 12 horas.Portanto sua utilização se justifica para casos em que o acesso deve ocorrer por um periodo curto de tempo. Paro atribuir uma role a um usuario nas policies atribuidas ao usuario
+deve ser adicionado constar a permissão de assumir essa policy, como no exemplo abaixo, em que permite o assumir a role definda em Resource:
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "sts:AssumeRole",
+      "Resource": "arn:aws:iam::765432109876:role/DeveloperProductionAccess" 
+    }
+  ]
+}
+```
+Após atribuir a role ao usuario, é possivel acessar o recurso permitido atraves do link
+gerado no role (com o usuario a qual a role foi atribuida logado):
 
 
+![Texto alternativo](assets/link-role.png)
+
+
+## EBS, snapshots e EFS
