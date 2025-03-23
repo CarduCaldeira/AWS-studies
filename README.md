@@ -458,3 +458,27 @@ gerado no role (com o usuario a qual a role foi atribuida logado):
 
 
 ## EBS, snapshots e EFS
+
+Para um tipo de instancia há dois tipos de storage:
+
+- Instance Storage: Storage local, é efemero (se pausar a instância o volume não se mantem ao reiniciar), a capacidade do tamnho é fixa, e o custo é incluído.
+- EBS: Volume, durável, o tamanho de armazenamento é configuravel, custos computados separadamente. Como a instancia comunica com o EBS via uma rede, o 
+  que pode gerar concorrência de rede com outras necessidades da instancia, para isso existem instancias EBS optimizer,  que possui uma interface de rede apenas para comunicação com o EBS.
+
+Para o EBS voce pode criar snapshots, que são backups que são armazenados no S3. O construção desses snapshots funcionam como "ponteiros", isso é, ao realizar um segundo snapshot ele vai aproveitar o snapshot anterior, apontando para o anterior e criando um espaço de memoria novo que também é apontado (com os novos dados). Dessa forma, mesmo que você apague uma versão de um snapshot ainda pode haver dados dele no S# (sendo utilizados por outra versão de um snapshot). Os snapshots sãp pagos separadamente do EBS, além disso é possível adicionar regras de gerenciamento desses snapshots (como por exemplo apagar os snapshots com mais de um mês). 
+
+Existe uma funionalidade que referencia um EBS para mais de uma instância. Em geral, é realizado o snapshot quando a instancia está pausada, para não passar mais o snapshotvariaveis de ambiente momentâneas. No EBS também é possível configurar o número de IOPS necessário e deve ser criado na mesma AZ que a instância.
+
+Obs: Ao criar um EBS e associar uma instancia voce deve formata-lo e montar o EBS em um diretorio do EC2, por exemplo se o EBS recebeu o nome /dev/sdf:
+
+```bash
+mkfs.ext4 /dev/sdf
+mkdir io2
+mount /dev/sdf io2/
+```
+
+A aws disponibiliza um file system que pode ser utilizado entre diferentes instcnais de AZ diferentes chamado EFS.
+
+
+## AWS Lambda
+
