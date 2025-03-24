@@ -19,7 +19,10 @@ Este repositorio foi criado para documentar os estudos realizados sobre AWS.
 - [Revisão de alguns conceitos](#revisao-de-alguns-conceitos)
 - [Politicas de Auto Scaling Group](#politicas-de-auto-scaling-group)
 - [IAM Roles](#iam-roles)
+- [EBS, snapshots e EFS](#ebs-snapshots-e-efs)
+- [AWS Lambda](#aws-lambda)
 
+EBS, snapshots e EFS
 ## Definindo um orçamento
 
 Acesse Billing and Cost Management e em Budgets crie um budget. A AWS disponibiliza templates de budgets. Para os nossos estudos foi criado um personalizado. É possível configurar um budget com
@@ -482,3 +485,32 @@ A aws disponibiliza um file system que pode ser utilizado entre diferentes instc
 
 ## AWS Lambda
 
+A AWS forneceum serviço serveless orientado a eventos chamado AWS Lambda. Pela interface gráfica é possível criar uma função
+de forma muito simples. Uma função utilizando python no Lambda terá o seguinte formato:
+
+```python
+import json
+
+def lambda_handler(event, context):
+    # TODO implement
+    return {
+        'statusCode': 200,
+        'body': json.dumps('Hello!')
+    }
+```
+
+O event é um dicionário que contém dados de entrada fornecidos ao Lambda quando o evento é acionado. Esse evento pode vir de várias fontes, como Amazon API Gateway, Amazon S3, Amazon SNS, AWS Step Functions, entre outros. O formato e o conteúdo do objeto event variam dependendo da origem do evento.
+Por exemplo, se o Lambda for invocado por meio do API Gateway, o event incluirá informações como o caminho da requisição, os parâmetros de consulta, cabeçalhos, e o corpo da requisição. O exemplo de documento que você mencionou para integração proxy é útil para entender o formato esperado quando o evento vem do API Gateway.
+
+O context é um objeto fornecido pelo AWS Lambda que contém informações sobre a execução da função, como tempo limite de execução, memória alocada, ID da requisição (invocation ID), e o nome da função Lambda.
+
+Também é possível configurar uma função no Lambda a partir do terminal (com o AWS CLI configurado), por exemplo:
+```bash
+sam init -n demo -r python3.13
+cd demo
+sam deploy -g
+```
+
+Após a configuração padrão será criada a pasta demo. Em demo/hello_world/app.py é definido a função Lambda. Aspectos de configuração do Lambda são definidos em demo/template.yaml, esse aquivo yml segue um padrão para o CloudFormation. Após a execução do template HelloWorld a API Gateway disponibilizará um endereço para disparar o evento.
+
+![Texto alternativo](assets/lambda.png)
