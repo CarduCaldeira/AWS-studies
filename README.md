@@ -21,8 +21,10 @@ Este repositorio foi criado para documentar os estudos realizados sobre AWS.
 - [IAM Roles](#iam-roles)
 - [EBS, snapshots e EFS](#ebs-snapshots-e-efs)
 - [AWS Lambda](#aws-lambda)
+- [Teorema CAP e DynamoDB](#teorema-cap-e-dynamodb)
+- [Banco de Dados em memória](#banco-de-dados-em-memória)
+- [Mensageria na AWS](#mensageria-na-AWS)
 
-EBS, snapshots e EFS
 ## Definindo um orçamento
 
 Acesse Billing and Cost Management e em Budgets crie um budget. A AWS disponibiliza templates de budgets. Para os nossos estudos foi criado um personalizado. É possível configurar um budget com
@@ -514,3 +516,54 @@ sam deploy -g
 Após a configuração padrão será criada a pasta demo. Em demo/hello_world/app.py é definido a função Lambda. Aspectos de configuração do Lambda são definidos em demo/template.yaml, esse aquivo yml segue um padrão para o CloudFormation. Após a execução do template HelloWorld a API Gateway disponibilizará um endereço para disparar o evento.
 
 ![Texto alternativo](assets/lambda.png)
+
+## Teorema CAP e DynamoDB
+
+O Teorema CAP afirma que é impossível para um sistema distribuído fornecer simultaneamente todas as três garantias a seguir:
+
+- Consistência (Consistency): Todas as réplicas de dados no sistema parecem iguais a qualquer cliente que acesse o sistema em um determinado momento.
+
+- Disponibilidade (Availability): Todo pedido de um cliente recebe uma resposta, seja ela correta ou não.
+
+- Tolerância a Partições (Partition Tolerance): O sistema continua a operar, mesmo que algumas das mensagens entre os nós sejam perdidas ou atrasadas (ou seja, o sistema pode lidar com a divisão da rede em sub-redes).
+
+De acordo com o teorema, apenas dois dos três requisitos podem ser garantidos ao mesmo tempo. Na cloud (e portanto com Tolerância a Partições), situações em que há uma quebra na
+conectividade entre os sistemas implicarão impactando ou na consitência
+ou na disponibilidade. 
+
+Uma forma de minizar os efeitos de uma quebra de comunicação é adicionando redudância (com múltiplos servidores e com replicação de um mesmo dado para cada AZ). Dessa forma implica no que é chamado em consistência eventual, quando for reestabelecido a comunicação o sistema voltará a ser consistente.
+
+
+Para lidar com a estrégia de partição o DynamoDB disponibilza duas key:
+
+- Partition Key: Chave utilizada para determinar como os dados serão particionados.
+- Sort Key (Optional): Chave utilizada para determinar a ordem que os dados serão particionados (também há chaves secundárias).
+
+Por exemplo: Imagine uma aplicação que armazena informações sobre pedidos de compras de clientes em uma tabela intitulada Pedidos. A tabela Pedidos pode ser configurada da seguinte forma:
+
+- Chave de Partição: ClienteID
+- Chave de Ordenação: PedidoID
+
+Nesse caso, ClienteID atua como a chave de partição. Isso significa que todos os pedidos feitos por um mesmo cliente serão agrupados e armazenados na mesma partição, mas cada pedido individual é distinguido por PedidoID, que é a chave de ordenação.
+
+Na configuração do DynamoDB é possível optar por:
+
+- Consistência Eventual (Eventually Consistent): Este é o comportamento padrão do DynamoDB e é recomendado quando a aplicação pode tolerar uma leitura que não reflete imediatamente a última gravação. Ele oferece baixa latência e maior taxa de transferência (mais barato).
+
+- Consistência Forte (Strongly Consistent): Ideal para aplicações que requerem garantias estritas sobre a precisão dos dados, porém, isso pode impactar na latência e taxa de transferência, já que todas as partições precisam estar sincronizadas antes do retorno da leitura.
+
+- Leituras de Transações (Transactional Reads): Isso garante que todas as operações na transação sejam bem-sucedidas ou nenhuma delas seja aplicada. Utilizado quando múltiplas operações precisam ser tratadas como uma única unidade, com total garantias de atomicidade, consistência, isolamento e durabilidade (ACID).
+
+## Banco de Dados em Memória 
+
+Para casos em em que a consulta ao banco de dados deve ser realizado em menos de um milissegundo:
+
+- ElastiCache: Engine que disponibiliza banco de dados em memória. O mais popular é o Redis (baseado em chave valor).
+
+- MemoryDB: "Redis" desnvolvido pela AWS. Mais otimizado que o Redis do ElastiCache.
+
+- Dax: Possui integração nativa ao DynamoDB, dessa forma ao configurar o client do DynamoDB em alguma linguagem é possível por optar pela verificação do DAX como primeira etapa (para otimizar os resultados do DynamoDB).
+
+Como bando de dados devem sempre ter replicação caso contrário se um cluster for interrompido esse dado será perdido.
+
+## Mensageria na AWS
