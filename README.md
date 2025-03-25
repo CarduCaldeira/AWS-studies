@@ -23,7 +23,7 @@ Este repositorio foi criado para documentar os estudos realizados sobre AWS.
 - [AWS Lambda](#aws-lambda)
 - [Teorema CAP e DynamoDB](#teorema-cap-e-dynamodb)
 - [Banco de Dados em memória](#banco-de-dados-em-memória)
-- [Mensageria na AWS](#mensageria-na-AWS)
+- [Mensageria na AWS](#mensageria-na-aws)
 
 ## Definindo um orçamento
 
@@ -245,12 +245,33 @@ Note que  ao criar um alarme voce pode configurar em Alarm action ações como S
 
 ## Utilizando o Amazon Route 53
 
+O Amazon Route 53 é um serviço DNS (Domain Name System) na nuvem altamente escalável e disponível, atua como um "diretor de tráfego" da Internet, facilitando a tradução de nomes de domínio(como www.exemplo.com) em endereços IP. Além do serviço DNS, o Route 53 oferece funcionalidades para registro de domínio e verificação de integridade.
+
 Ao configurar uma instancia voce pode querer associar um dominio associado ao seu IP Public IPv4 address.
 Para isso é necessário configurar algumas etapas:
 
 - Alugar um dominio em Route 53
 - Fixar um IP fixo a sua instancia. Toda vez que uma instancia é parada ao ser iniciada novamente por padrão será um IP Public diferente. Então na aba lateral de EC2 selecione Network & Security -> Elastic Ips -> Allocate Elastic IP adress. Após criar o IP selecione ele e em Actions -> Associate Elastic IP address, e então associe a instancia desejada. 
 - Em Route 53 voce pode então associar o dominio ao IP criado criando um record, inserindo o IP.
+
+## Roteamento de tráfego com o Amazon Route 53
+
+O Amazon Route 53 oferece várias políticas de roteamento para gerenciar como o tráfego é direcionado para os seus recursos:
+
+- Roteamento Simples: Esta é a política padrão e é usada quando você tem um único recurso que executa a função que você está roteando o tráfego.
+
+- Roteamento Latência: Direciona os usuários para o recurso que oferece a menor latência de rede, ou seja, o recurso mais próximo em termos de tempo de resposta.
+
+- Roteamento Ponderado: Permite distribuir o tráfego entre vários recursos na proporção que você especifica.
+Caso de Uso: Útil para balanceamento de carga, testes A/B ou migrações graduais de sistemas.
+
+- Roteamento Failover: Direciona o tráfego para um recurso primário a menos que ele esteja inativo, caso em que o tráfego será redirecionado para um recurso de backup.
+
+- Roteamento Geo-localizado (Geolocation): Direciona o tráfego com base na localização geográfica dos usuários.
+
+- Roteamento Geo-proximidade (Geoproximity): Direciona o tráfego com base na proximidade do usuário aos recursos, permitindo ajuste por "bias" para influenciar a escolha de roteamento.
+
+- Roteamento Baseado em IP (IP-Based Routing): Direciona o tráfego com base no endereço IP do usuário.
 
 ##  Cloudshell
 
@@ -567,3 +588,27 @@ Para casos em em que a consulta ao banco de dados deve ser realizado em menos de
 Como bando de dados devem sempre ter replicação caso contrário se um cluster for interrompido esse dado será perdido.
 
 ## Mensageria na AWS
+
+SQS - O Amazon Simple Queue Service (SQS) é um serviço da AWS que oferece uma solução gerenciada e altamente escalável para filas de mensagens. O SQS permite que diferentes componentes de um sistema de software se comuniquem uns com os outros de maneira assíncrona e desacoplada
+
+![Texto alternativo](assets/sqs.png) 
+
+Devido ao Teorema CAP pode haver casos em que deve se optar entre consistência e disponibilidade. Dessa forma há duas configurações para o SQS:
+
+- Standard Queues: Oferecem throughput ilimitado e são ideais para casos em que a ordem exata e o processamento único de mensagens não são críticos.
+Garantem que cada mensagem será entregue pelo menos uma vez, embora possam haver duplicatas de mensagens.
+A ordem de mensagens pode ser eventualmente alterada.
+
+- FIFO Queues: Preservam a ordem exata das mensagens e garantem que cada mensagem seja processada apenas uma vez.
+São ideais para aplicações onde a ordem das operações e eventos é crucial.
+Possuem throughput mais limitado em comparação com filas Standard, mas oferecem uma entrega rigorosa com processamento único de mensagens.
+
+Dentre os parametros configuraveis no SQS é valido mencionar o tempo maximo que uma mensagem pode ficar na Queue (até um producer pegar essa mensagem), o tempo máximo de processamento para cada mensagem (no caso de falha essa mensagem volta para a fila), o número máximo de de tentativas de processamento de uma mensagem e a configuração de uma fila auxiliar (DLQ) que armazena as mensagens que o número de tentativas excedeu o número máximo de tentativas (para controle e monitoramento do fluxo).
+
+SNS - Funciona como um serviço de pub/sub, onde as mensagens são enviadas para múltiplos consumers através de tópicos. Possui suporte a diferentes endpoints (email, SMS, Kineses, SQS, Lambda etc). Assim como o SQS é serveless e possui a configuração Standard e FIFO.
+
+Amazon MQ: Engine de broker da AWS, possui duas opões: RabbitMQ e o ActiveMQ.
+
+Amazon Kineses: Broker da AWS qu como o Kafka é utilizado para streamming, altamente configurável e escalável. 
+
+Tanto o Amazon MQ e o Kineses não são serveless.
