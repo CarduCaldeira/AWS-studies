@@ -24,6 +24,9 @@ Este repositorio foi criado para documentar os estudos realizados sobre AWS.
 - [Teorema CAP e DynamoDB](#teorema-cap-e-dynamodb)
 - [Banco de Dados em memória](#banco-de-dados-em-memória)
 - [Mensageria na AWS](#mensageria-na-aws)
+- [Amazon CloudFront](#amazon-cloudfront)
+- [Protegendo e Otimizando um Bucket](#protegendo-e-otimizando-um-bucket)
+
 
 ## Definindo um orçamento
 
@@ -611,4 +614,28 @@ Amazon MQ: Engine de broker da AWS, possui duas opões: RabbitMQ e o ActiveMQ.
 
 Amazon Kineses: Broker da AWS qu como o Kafka é utilizado para streamming, altamente configurável e escalável. 
 
-Tanto o Amazon MQ e o Kineses não são serveless.
+Tanto o Amazon MQ quanto o Kineses não são serveless.
+
+## Amazon CloudFront
+
+Na AWS existe o conceito de Edge Locations, que são locais intermediarios entre a AZ e o usuario que tem como objetivo otimizar o tempo e uso de recursos para o acesso a instancias no EC2.
+
+Para utilizar os edge locations voce deve configurar um dominio no Amazon CloudFront. Assim, o tempo de resposta de suas requisições serão otimizadas, e haverá um melhor uso de recursos pois no edge location ficará armazenado o cache da sua aplicação, aliviando o uso da sua instancia no EC2. Além disso,
+o  Amazon CloudFront disponibiliza recursos de segurança como a ataques DDOS.
+
+Mesmo que a sua aplicação no EC2 não contenha informacações estaticas (e portanto o cache não será tão útil) o Amazon CloudFront melhorara o tempo de resposta pois a comuniação entre o edge location e a AZ é otimizada.
+
+Além disso, é possível segmentar o conteúdo entre estastico e dinamico, armazenando o conteudo estatico no cache no edge location. O CloudFront possui um recurso chamado Origins, onde voce especifica a origin das informações (como o S3, loadbalancer ou a própria instância). Para configurar a forma que a origin é usada basta explicitar a regra em Behavior. Ao utilizar o S3 como um Origin você possibilita o uso dessas informações para aplicações globais (ao contrário de uma instância que é por meio de uma AZ).
+
+Ao criar uma distribuição no Amazon CloudFront, ele gera automaticamente um nome de domínio próprio para essa distribuição, algo como abcdef123456.cloudfront.net. No entanto, você pode configurar para usar seu próprio domínio registrado no Amazon Route 53 como o domínio alternativo para a distribuição do CloudFront. Isso se faz através das configurações de domínio alternativo (CNAME) no CloudFront.
+
+## Protegendo e Otimizando um Bucket
+
+Relembrando configurações anteriores do S3, ao utilizarmos imagens em sites nos deixamos o bucket público, o que poder ser um ponto de falha de segurança. Para isso é possível configurar esse bucket como privado e liberar o acesso ao CloudFront (por meio de policies). Dessa forma, o acesso direto as imagens não é permitido porém ainda sim é possível utilizar em sites.
+
+Outro ponto de configuração de um Bucket são os acess points, que são formas secundárias
+de configuração de um bucket, dessa forma diferentes aplicações podem utilizar um mesmo Bucket (com diferentes configurações) sem ser necessário replicar os dados para um novo Bucket.
+
+Para otimizar a tranferência de arquivos no S3 (principalmente para objetos maiores e para lugares mais distantes) é possível habilitar o S3 transfer acceleration, recurso esse que utilizará os edge locations para upload e download dos objetos. O custo de leitura é o mesmo porém ele passará a cobrar a escrita.
+
+Ao habilitar o transfer acceleration será criado um novo endpoint da API do S3 para o bucket em questão.
