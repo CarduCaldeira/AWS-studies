@@ -26,6 +26,7 @@ Este repositorio foi criado para documentar os estudos realizados sobre AWS.
 - [Mensageria na AWS](#mensageria-na-aws)
 - [Amazon CloudFront](#amazon-cloudfront)
 - [Protegendo e Otimizando um Bucket](#protegendo-e-otimizando-um-bucket)
+- [Exercicio: Otimizando a Aplicação](#exercicio-otimizando-a-aplicação)
 
 
 ## Definindo um orçamento
@@ -198,7 +199,7 @@ Para uma rede ter acesso a internet é necessário que ela tenha um IP público 
 
 Para gerenciamneto de uma VPC existem dois aspectos:
 
-- Security group: Definições sobre cada instancia EC2, é possível configurar aspectos como quais portas podem receber requisições etc. Nesse contexto tudo que deve ser permitido deve ser definido, caso não definido não é permitido.
+- Security group: Definições sobre cada instancia EC2, é possível configurar aspectos como quais portas podem receber requisições etc. Nesse contexto tudo que deve ser permitido deve ser definido, caso não definido não é permitido. Um security group é aplicado sobre uma entidade na VPC em que ele foi definido (por exemplo uma instancia EC2).
 
 - VACL's: Definições sobre a VPC, se aplica sobre a VPC. Pode ser definido o que é permitido e o que não é permitido.
 
@@ -221,7 +222,10 @@ Nas imagens abaixo mostram a configuração de um security group e uma ACL:
 
 ![Texto alternativo](assets/security-groups.png)
 
+Inbound rules são as regras referentes a entrada de dados. Por exemplo, se sua ec2 ira rodar um site voce poder poermitir a entrada de requisições na porta 80. Basicamente para que uma instancia ec2 esteja disponivel publicamente ela deve possuir um IP público (estar em uma rede pública), estar associada a um internet getaway que possui acesso a internet (nesse caso isso é configurado automaticamente por meio da route table) e o security group deve perimitir essa comunição pelo protocolo desejado.
+
 ![Texto alternativo](assets/ACLS.png)
+
 
 Após isso  é possível criar uma nova instancia atribuindo a ela um par de AZ e se ela é publico ou privada. Note também a opção de seleção de instancias spot, como o preço de instancias spot é sempre limitado por on demand sempre opte por instancias spot.
 
@@ -340,7 +344,7 @@ Não é necessário selecionar a subnet que o Lunch template será criado (isso 
 
 Um ponto muito importante é que na configuração auto scaling, a subnet escolhida deve estar
 com auto-assign public IPv4 address ativado. Essa configuração é necessária pois ao contrário
-de criar uma instancia no EC2 que por padrão vem com o auto-assing public IP ativado como na figura abaixo (logo mesmo que uma instancia seja criada em um subnet publica se ela nao tiver um IP publico não será possível acessa-la publicamente).  
+de criar uma instancia no EC2 que por padrão vem com o auto-assing public IP ativado como na figura abaixo o Launch template não vem com essa configuração default (logo mesmo que uma instancia seja criada em um subnet publica se ela nao tiver um IP publico não será possível acessa-la publicamente).  
 
 ![Texto alternativo](assets/instance_enable.png)
 
@@ -377,12 +381,12 @@ Na proxima seção é feito uma revisão dos principais conceitos sobre alta dis
 atributos que serão utilizados pelo AutoScaling Group para criar e manter as instancias.
 
 - Auto Scaling Group: Configuração que cria e mantem as instancias definidas no Launch Template. Possui configurações para definir intervalos de instancias que devem estar disponiveis e configurações para associar ao Load Balancer/Target Group. Ao definir um 
-Load Balancer voce deve atribuir a um ou mais dos seus target groups, dessa forma  
+Load Balancer voce deve atribuir a um ou mais dos seus target groups.
 
 - Load Balancer: Distribui as "requisições" entre as instancias (a forma de distribuição é configuravel). As instancias que receberão a distribuição de carga são definidas ao atribuir um target group. Quando definido o Load Balancer é possivel associar regras como por exemplo 
 uma requisição de um usuario especifico é mantida sempre em uma instancia (por exemplo para perimitir o uso de cookies etc).
 
-- Target group: Definição das "intancias" que receberão a distribuição do Load Balancer.
+- Target group: Definição das "instancias" que receberão a distribuição do Load Balancer.
   Note que a instancia nao é criada aqui, apenas configurado atributos necessarios para o Load Balancer. Além disso, o target group pode ser definido para funções Lambda, IP (como containers), ou outros load balancers. 
 
   Ao criar um um target group é possível associar as instancias (ou IP's etc) que o target group conterá, apesar disso, o padrão é deixar essa associação no scaling group,
@@ -633,9 +637,41 @@ Ao criar uma distribuição no Amazon CloudFront, ele gera automaticamente um no
 
 Relembrando configurações anteriores do S3, ao utilizarmos imagens em sites nos deixamos o bucket público, o que poder ser um ponto de falha de segurança. Para isso é possível configurar esse bucket como privado e liberar o acesso ao CloudFront (por meio de policies). Dessa forma, o acesso direto as imagens não é permitido porém ainda sim é possível utilizar em sites.
 
-Outro ponto de configuração de um Bucket são os acess points, que são formas secundárias
+![Texto alternativo](assets/protect_bucket.png) 
+
+Outro ponto de configuração de um Bucket são os access points, que são formas secundárias
 de configuração de um bucket, dessa forma diferentes aplicações podem utilizar um mesmo Bucket (com diferentes configurações) sem ser necessário replicar os dados para um novo Bucket.
 
 Para otimizar a tranferência de arquivos no S3 (principalmente para objetos maiores e para lugares mais distantes) é possível habilitar o S3 transfer acceleration, recurso esse que utilizará os edge locations para upload e download dos objetos. O custo de leitura é o mesmo porém ele passará a cobrar a escrita.
 
 Ao habilitar o transfer acceleration será criado um novo endpoint da API do S3 para o bucket em questão.
+
+## Exercicio: Otimizando a aplicação
+
+Para testar a utilidade do CloudFront foi executado uma instancia do EC2 na região do Japão. Nela foi configurado um site com uma serie de imagens, o tempo de requisição foi:
+
+![Texto alternativo](assets/before_config.png) 
+
+Após a implementação do Cloudfront:
+
+![Texto alternativo](assets/after_config.png) 
+
+Para configurar uma distribuição no Cloudfront aponte para um endereço (nesse caso o IPv4 público da instancia, mas poderia ser seu DNS caso configurado no Route 53, ou um Load Balancer, API Gateway ou um Bucket do S3).
+
+![Texto alternativo](assets/ipv4-instancia.png) 
+
+![Texto alternativo](assets/origin_cloudfront.png)
+
+Após a criação será criado um endpoint para utilizar a aplicação com o Cloudfront:
+
+![Texto alternativo](assets/endpoint_cloudfront.png)
+
+Para configurar para o domínio DNS também utilizar o cloudfront, no momento da criação da distribuição configure o Alternate name (CNAME):
+
+![Texto alternativo](assets/alternate_name.png)
+
+Para cachear arquivos estáticos configure em origins os buckets que serão utilizados para carregar os arquivos. Em behavior voce pode configurar regras para cada tipo de arquivo, por exemplo arquivos referenciados em alguma pasta /assets/ no html da aplicação utilizará determinado bucket.
+
+![Texto alternativo](assets/behavior_cloudfront.png)
+
+Outro recurso disponivel pela AWS é o Global Acelerator, que otimiza a comunicação entre os edge points e a instancia de destinho (utilizando anycast). Sua configuração é bem simples, determine o protocolo utilizado (TCP/UDP), a porta que o listener utilizará (por exemplo 80), a região que ele será configurado para otimizar, os health checks (utilizando HTTP ou HTTPS ou TCP ) e o endpoint utilizado (Elastic IP, Load Balancer, EC2 instance). Ele não tem a opção de apontar para um DNS com o objetivo de driblar alguns problemas associados a DNS.  
