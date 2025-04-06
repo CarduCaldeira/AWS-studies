@@ -1,5 +1,5 @@
 
-Este repositorio foi criado para documentar os estudos realizados sobre AWS.
+Este repositório foi criado para documentar os estudos realizados sobre AWS.
 
 
 # Sumário
@@ -27,7 +27,14 @@ Este repositorio foi criado para documentar os estudos realizados sobre AWS.
 - [Amazon CloudFront](#amazon-cloudfront)
 - [Protegendo e Otimizando um Bucket](#protegendo-e-otimizando-um-bucket)
 - [Exercicio: Otimizando a Aplicação](#exercicio-otimizando-a-aplicação)
-
+- [NAT's, Gateway's e VPC Peering](#nats-gateways-e-vpc-peering)
+- [Replicação de dados no S3 e RDS](#replicação-de-dados-no-s3-e-rds)
+- [S3 Life Cycle](#s3-life-cycle)
+- [IAM Access Analyzer](#iam-access-analyzer)
+- [Auditando invocações com Amazon Athena](#auditando-invocações-com-amazon-athena)
+- [Criptografia em trânsito e repouso](#criptografia-em-trânsito-e-repouso)
+- [AWS CloudFormation](#aws-cloudformation)
+- [Exemplo de um projeto na AWS](#exemplo-de-um-projeto-na-aws)
 
 ## Definindo um orçamento
 
@@ -258,8 +265,14 @@ Ao configurar uma instancia voce pode querer associar um dominio associado ao se
 Para isso é necessário configurar algumas etapas:
 
 - Alugar um dominio em Route 53
-- Fixar um IP fixo a sua instancia. Toda vez que uma instancia é parada ao ser iniciada novamente por padrão será um IP Public diferente. Então na aba lateral de EC2 selecione Network & Security -> Elastic Ips -> Allocate Elastic IP adress. Após criar o IP selecione ele e em Actions -> Associate Elastic IP address, e então associe a instancia desejada. 
+- Fixar um IP fixo a sua instancia. Toda vez que uma instancia é parada ao ser iniciada novamente por padrão será um IP Public diferente. Então na aba lateral de EC2 selecione Network & Security -> Elastic Ips -> Allocate Elastic IP adress. Após criar o IP selecione ele e em Actions -> Associate Elastic IP address, e então associe a instancia desejada (ou outra entidade). 
+
+![Texto alternativo](assets/ip.png)
+
 - Em Route 53 voce pode então associar o dominio ao IP criado criando um record, inserindo o IP.
+
+![Texto alternativo](assets/record_domain.png)
+
 
 ## Roteamento de tráfego com o Amazon Route 53
 
@@ -326,7 +339,7 @@ EC2. Além das configurações especificas para um database, atente se para a cr
 na vpc selecionada com permissão a comunicação na porta configurada para o Database (por exemplo no caso do
 postgres 5432). Em geral, utilize o database em uma subrede privada.
 
-Após isso a criação é possível utilizar o dabatase normalmente.
+Após a criação é possível utilizar o dabatase normalmente.
 
 ## Auto Scaling e Load Balancer
 
@@ -675,3 +688,116 @@ Para cachear arquivos estáticos configure em origins os buckets que serão util
 ![Texto alternativo](assets/behavior_cloudfront.png)
 
 Outro recurso disponivel pela AWS é o Global Acelerator, que otimiza a comunicação entre os edge points e a instancia de destinho (utilizando anycast). Sua configuração é bem simples, determine o protocolo utilizado (TCP/UDP), a porta que o listener utilizará (por exemplo 80), a região que ele será configurado para otimizar, os health checks (utilizando HTTP ou HTTPS ou TCP ) e o endpoint utilizado (Elastic IP, Load Balancer, EC2 instance). Ele não tem a opção de apontar para um DNS com o objetivo de driblar alguns problemas associados a DNS.  
+
+## NAT's, Gateway's e VPC Peering
+
+A AWS fornece recursos para o uso de redes privadas como NAT's, Interface endpoints e 
+Gateway endpoints. Para recursos em redes privadas que não devem ser acessados pela internet 
+é possível configurar um NAT, uma opção para o acesso a internet apenas quando triggado pela
+instancia dentro da rede privada, dessa forma ainda é possível realizar atualizações.
+
+Para casos em que é desejado a coneção direta a um serviço da AWS sem passar pela rede pública é
+possível configurar um recurso de Interface endpoint ou Gateway endpoints (recurso especifico para
+alguns serviços como S3 ou DynamoDB).
+
+Para a conexão entre duas VPC's (podendo ser em regiões diferentes e até mesmo em contas AWS diferentes)
+existe o recurso VPC Peering. Para primeiro passo para a conexão entre duas redes observe ao cria-las 
+que o CIDR delas nao devem ser conflitantes.
+
+![Texto alternativo](assets/vpc-peering.png)
+
+Como teste no terminal de uma das instacias de ping no IP privado da outra instância e note que não haverá comunicação (para fazer esse teste no security group permita comunicação ICMP). Para configurar um conexão faça:
+
+- Em VPC acesse Peering connections > Create peering connection. Configure a conexão e aceite o pedido de conexão
+na região para qual a VPC remetente foi configurada.
+
+![Texto alternativo](assets/create_peering.png)
+
+- Configure as route table: Para de fato ser possível conectar com as duas instancias deve ser configurado as
+route tables (nas duas VPC's). Para isso acesse a route table da subnet pública de cada uma das VPC's configuradas
+
+![Texto alternativo](assets/route_table.png)
+
+Na route table voce deve redirecionar o destino referente ao CIDR da outra VPC para a conexão do VPC peering. Após fazer isso em ambas
+será possível estabelecer a comunicação entre as instancias.
+
+![Texto alternativo](assets/connection_successful.png)
+
+O VPC peering não é transitivo, ie se há uma conexão entre A e B uma conexão de B e C não haverá uma conexão de A para C.
+
+## Replicação de dados no S3 e RDS
+
+Para replicar dados no S3 entre buckets ative a opção de versionamento nos dois buckets.
+No bucket que ira receber a replicação acesse Management > Replication rules e informe o ID da conta de usuario do bucket de origem. Após configurar aplique as policy gerada (para que seja possível receber os dados do bucket de origem). 
+
+![Texto alternativo](assets/connection_successful.png)
+
+No bucket de origem acesse Management > Create replication Rule e configure a replicação apontando para o o bucket de destino previamente configurado.
+
+Para configurar uma replica de um banco de dados no RDS (nesse exemplo foi usado o postgres) selecione Multi-AZ DB instance ou
+Multi-AZ DB cluster. Cada uma das opções tem a seguinte caracteristicas:
+
+- Multi-AZ DB instance: É possível criar uma replica (Standby) para failover. Essa replica não será utilizada para leitura nem escrita. No momento que o DB master estiver indisponivel a replica assume como master. Para manter a consistencia a master e a replica estão sempre
+sincronizadas.
+
+- Multi-AZ DB cluster: Cria replicas sntandby (que podem ser usadas para leitura). Apenas o master é usado para escrita. Nesse caso a consistencia é eventual. Para minimizar erros de consistencia e a troca de DB como master os DB possuem SSD.
+
+![Texto alternativo](assets/rds-replication.png)
+
+Após a configuração do banco de dados voce pode criar a replica. 
+
+![Texto alternativo](assets/replica-rds.png)
+
+## S3 Life Cycle
+
+O S3 possui uma gestão de vida de arquivos no S3 em que é possível configurar a forma e duração que um arquivo será armazenado, podendo reduzir custos (deve ser considerado aspectos como latência e frequência de leitura para os arquivos). Para detalhes do custo de cada configuração [link](https://aws.amazon.com/pt/s3/pricing/).
+
+No bucket acesse Management > Lifecycle rules > Create lifecycle rule. Configure como será a politica
+para os arquivos, o tempo e a forma que será armazenado:
+
+![Texto alternativo](assets/rule_actions.png)
+
+Por exemplo, você pode determinar que após 30 dias um arquivo vai do ser armzenado no Glacier Flexible e após 365 dias o arquivo será excluído.
+
+![Texto alternativo](assets/transition-life-cycle.png)
+
+## IAM Access Analyzer
+
+Definir policies utilizando o princípio do menor privilégio pode ser algo trabalhoso. Para facilitar a sua geração a AWS fornece o IAM Access Analyzer
+que a partir do logs salvos pelo aws trail gera qual seria as policies
+necessárias (seguindo o princípio do menor privilégio). Para exemplificar crie uma role com permissão PowerUser. Após isso configure um trail no aws trail. Suba uma instancia e atribua a role criada com a policy PowerUser.
+Conecte na instancia e rode os comandos:
+
+```bash
+aws sts get-caller-identity
+aws s3 mb s3://democasosdengue1
+touch a.txt
+echo uala > a.txt
+aws s3 sync . s3//democasosdengue1
+```
+Na role criada acesse Generate policy based on CloudTrail events e como na figura abaixo é possível
+configurar a policy baseado nos logs do CloudTrail.
+
+![Texto alternativo](assets/policy-based-CloudTrails.png)
+
+Apoós o processamento o IAM Access Analyzer mostrará as ações levantadas na role e a policy sugerida.
+
+![Texto alternativo](assets/review-permissions.png)
+
+![Texto alternativo](assets/customize-permissions.png)
+
+## Auditando invocações com Amazon Athena
+
+Amazon Athena é um serviço de query que acessa diretamente o S3, usando SQL. É serverless,  sendo ideal para análise de logs, geração de relatórios ad hoc e processamento de grandes volumes de dados sem necessidade de ETL complexo.
+
+Para exemplificar seu uso utilizando os logs gerados pelo CloudTrail  anteriormente crie uma tabela. Acesse Event history > Create Athena Table. Antes de realizar as queries no ambiente grafico do Athena
+voce deve associar um bucket onde as queries serão salvas. Para associar o Athena ao bucket acesse
+Edit settings, Após realizar a query o arquivo será salvo no bucket no fomrato csv.
+
+## Criptografia em trânsito e repouso
+
+## AWS CloudFormation
+
+## Exemplo de um projeto na AWS
+
+[Link](https://github.com/CarduCaldeira/url-shortener-aws)
