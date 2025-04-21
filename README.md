@@ -799,4 +799,4 @@ Edit settings, Após realizar a query o arquivo será salvo no bucket no fomrato
 
 ## Exemplo de um projeto na AWS
 
-[Link](https://github.com/CarduCaldeira/url-shortener-aws](https://github.com/faermanj/url-shortener)
+[Link](https://github.com/faermanj/url-shortener)
