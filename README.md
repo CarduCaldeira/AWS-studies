@@ -1,6 +1,5 @@
 
-Este repositório foi criado para documentar os estudos realizados sobre AWS.
-
+Anotações para uso pessoal baseado no curso Descomplicando a AWS [Linuxtips](https://linuxtips.io/).
 
 # Sumário
 
@@ -800,4 +799,4 @@ Edit settings, Após realizar a query o arquivo será salvo no bucket no fomrato
 
 ## Exemplo de um projeto na AWS
 
-[Link](https://github.com/CarduCaldeira/url-shortener-aws)
+[Link]([https://github.com/CarduCaldeira/url-shortener-aws](https://github.com/faermanj/url-shortener))
